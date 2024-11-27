@@ -1,9 +1,8 @@
-version: '3'
+version: "3"
 
 services:
-
   mybunker:
-    image: bunkerity/bunkerweb:1.4.0
+    image: bunkerity/bunkerweb:1.5.12
     logging:
       driver: syslog
       options:
@@ -13,48 +12,70 @@ services:
     ports:
       - 80:8080
       - 443:8443
-    # ⚠️ read this if you use local folders for volumes ⚠️
-    # bunkerweb runs as an unprivileged user with UID/GID 101
-    # don't forget to edit the permissions of the files and folders accordingly
-    # example if you need to create a directory : mkdir folder && chown root:101 folder && chmod 770 folder
-    # another example for existing folder : chown -R root:101 folder && chmod -R 770 folder
-    # more info at https://docs.bunkerweb.io
-    volumes:
-      - bw_data:/data
     environment:
       - SERVER_NAME=www.example.com # replace with your domain
+      - API_WHITELIST_IP=127.0.0.0/8 10.10.10.0/24
       - AUTO_LETS_ENCRYPT=yes
       - DISABLE_DEFAULT_SERVER=yes
       - USE_CLIENT_CACHE=yes
       - USE_GZIP=yes
       - USE_REVERSE_PROXY=yes
       - REVERSE_PROXY_URL=/
-      - REVERSE_PROXY_HOST=http://myapp
+      - REVERSE_PROXY_HOST=http://myapp:8080
+    labels:
+      - "bunkerweb.INSTANCE=yes" # required for the scheduler to recognize the container
     networks:
-      - mynet
+      - bw-services
+
+  bw-scheduler:
+    image: bunkerity/bunkerweb-scheduler:1.5.12
+    logging:
+      driver: syslog
+      options:
+        syslog-address: "udp://10.10.10.254:514"
+    depends_on:
+      - mybunker
+      - mysyslog
+    environment:
+      - DOCKER_HOST=tcp://bw-docker-proxy:2375
+    volumes:
+      - bw-data:/data
+    networks:
+      - bw-services
+      - bw-docker
+
+  bw-docker-proxy:
+    image: tecnativa/docker-socket-proxy:nightly
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    environment:
+      - CONTAINERS=1
+      - LOG_LEVEL=warning
+    networks:
+      - bw-docker
 
   mysyslog:
-    image: balabit/syslog-ng
+    image: balabit/syslog-ng:3.38.1
     command: --no-caps
     volumes:
       - ./syslog-ng.conf:/etc/syslog-ng/syslog-ng.conf
       - ./log:/var/log
     networks:
-      mynet:
+      bw-services:
         ipv4_address: 10.10.10.254
 
   myapp:
-    image: tutum/hello-world
+    image: nginxdemos/nginx-hello
     networks:
-      - mynet
+      - bw-services
 
 volumes:
-  bw_data:
-
+  bw-data:
 
 networks:
-  mynet:
+  bw-services:
     ipam:
       driver: default
       config:
         - subnet: 10.10.10.0/24
+  bw-docker:

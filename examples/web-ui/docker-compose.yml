@@ -1,81 +1,90 @@
-version: '3'
+version: "3.5"
 
 services:
-
-  mybunker:
-    image: bunkerity/bunkerweb:1.4.0
+  bunkerweb:
+    image: bunkerity/bunkerweb:1.5.12
     ports:
       - 80:8080
       - 443:8443
-    # ⚠️ read this if you use local folders for volumes ⚠️
-    # bunkerweb runs as an unprivileged user with UID/GID 101
-    # don't forget to edit the permissions of the files and folders accordingly
-    # example if you need to create a directory : mkdir folder && chown root:101 folder && chmod 770 folder
-    # another example for existing folder : chown -R root:101 folder && chmod -R 770 folder
-    # more info at https://docs.bunkerweb.io
-    volumes:
-      - bw_data:/data
-      - bw_config:/etc/nginx
+    labels:
+      - "bunkerweb.INSTANCE=yes"
     environment:
       - SERVER_NAME=www.example.com
       - MULTISITE=yes
+      - DATABASE_URI=mariadb+pymysql://bunkerweb:changeme@bw-db:3306/db # Remember to set a stronger password for the database
+      - API_WHITELIST_IP=127.0.0.0/8 10.20.30.0/24
       - AUTO_LETS_ENCRYPT=yes
       - DISABLE_DEFAULT_SERVER=yes
       - USE_CLIENT_CACHE=yes
       - USE_GZIP=yes
-      - API_WHITELIST_IP=127.0.0.0/8 10.20.30.0/24
       - www.example.com_USE_UI=yes
-      - www.example.com_SERVE_FILES=no
       - www.example.com_USE_REVERSE_PROXY=yes
-      - www.example.com_REVERSE_PROXY_URL=/changeme/                     # replace with another url
-      - www.example.com_REVERSE_PROXY_HOST=http://myui:7000
-      - www.example.com_REVERSE_PROXY_HEADERS=X-Script-Name /changeme/   # replace with another url
-      - www.example.com_REVERSE_PROXY_INTERCEPT_ERRORS=no
-      - www.example.com_LIMIT_REQ_URL=/changeme/plugins/upload           # replace with another url
-      - www.example.com_LIMIT_REQ_RATE=4r/s
-      - www.example.com_LIMIT_REQ_URL_1=/changeme/logs                   # replace with another url
-      - www.example.com_LIMIT_REQ_RATE_1=4r/s
-    labels:
-      - "bunkerweb.UI"
+      - www.example.com_REVERSE_PROXY_URL=/changeme
+      - www.example.com_REVERSE_PROXY_HOST=http://bw-ui:7000
+      - www.example.com_INTERCEPTED_ERROR_CODES=400 404 405 413 429 500 501 502 503 504
+      - www.example.com_MAX_CLIENT_SIZE=50m
     networks:
-      - net_ui
-      - net_svc
+      - bw-universe
+      - bw-services
 
-  myui:
-    image: bunkerity/bunkerweb-ui:1.4.0
+  bw-scheduler:
+    image: bunkerity/bunkerweb-scheduler:1.5.12
     depends_on:
-      - myuiproxy
-    volumes:
-      - bw_data:/data
-      - bw_config:/etc/nginx
+      - bunkerweb
+      - bw-docker
     environment:
-      - ABSOLUTE_URI=https://www.example.com/changeme/                    # replace with another url
-      - DOCKER_HOST=tcp://myuiproxy:2375
-      - ADMIN_USERNAME=admin
-      - ADMIN_PASSWORD=changeme                                           # replace with a stronger password
+      - DATABASE_URI=mariadb+pymysql://bunkerweb:changeme@bw-db:3306/db # Remember to set a stronger password for the database
+      - DOCKER_HOST=tcp://bw-docker:2375
     networks:
-      - net_ui
-      - net_docker
+      - bw-universe
+      - bw-docker
 
-  myuiproxy:
-    image: tecnativa/docker-socket-proxy
+  bw-docker:
+    image: tecnativa/docker-socket-proxy:nightly
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
     environment:
       - CONTAINERS=1
+      - LOG_LEVEL=warning
     networks:
-      - net_docker
+      - bw-docker
+
+  bw-ui:
+    image: bunkerity/bunkerweb-ui:1.5.12
+    depends_on:
+      - bw-docker
+    environment:
+      - DATABASE_URI=mariadb+pymysql://bunkerweb:changeme@bw-db:3306/db # Remember to set a stronger password for the database
+      - DOCKER_HOST=tcp://bw-docker:2375
+      - ADMIN_USERNAME=changeme
+      - ADMIN_PASSWORD=changeme # Remember to set a stronger password for the changeme user
+    networks:
+      - bw-universe
+      - bw-docker
+
+  bw-db:
+    image: mariadb:10.10
+    environment:
+      - MYSQL_RANDOM_ROOT_PASSWORD=yes
+      - MYSQL_DATABASE=db
+      - MYSQL_USER=bunkerweb
+      - MYSQL_PASSWORD=changeme # Remember to set a stronger password for the database
+    volumes:
+      - bw-data:/var/lib/mysql
+    networks:
+      - bw-docker
 
 volumes:
-  bw_data:
-  bw_config:
-
+  bw-data:
 
 networks:
-  net_ui:
+  bw-universe:
+    name: bw-universe
     ipam:
       driver: default
       config:
         - subnet: 10.20.30.0/24
-  net_docker:
-  net_svc:
+  bw-services:
+    name: bw-services
+  bw-docker:
+    name: bw-docker

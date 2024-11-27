@@ -2,25 +2,43 @@
 
 ## Who maintains BunkerWeb ?
 
-BunkerWeb is maintained by [Bunkerity](https://www.bunkerity.com), a French 🇫🇷 company specialised in Cybersecurity 🛡️.
+BunkerWeb is maintained by [Bunkerity](https://www.bunkerity.com/?utm_campaign=self&utm_source=doc), a French 🇫🇷 company specialized in Cybersecurity 🛡️.
+
+## Do you have a professional version ?
+
+Yes, we do offer a professional version of BunkerWeb called "BunkerWeb PRO".
+
+Here are the main benefits of BunkerWeb PRO :
+
+- Unlock all features of BunkerWeb
+- Pay per protected services
+- Respond to professional needs
+- Free trial with no credit card
+- Best effort support included
+
+You can go the [BunkerWeb panel](https://panel.bunkerweb.io/?utm_campaign=self&utm_source=doc) to get more information and claim your free trial.
 
 ## Do you offer professional services ?
 
-Yes, we offer professional services related to BunkerWeb like :
+Yes, we offer professional services related to BunkerWeb.
+
+You can get in touch with us about any of the following :
 
 - Consulting
 - Support
 - Custom development
 - Partnership
 
-Please contact us at [contact@bunkerity.com](mailto:contact@bunkerity.com) if you are interested.
+We have a [dedicated panel](https://panel.bunkerweb.io/?utm_campaign=self&utm_source=doc) to centralize all professional requests.
+
+You can also contact use at [contact@bunkerity.com](mailto:contact@bunkerity.com) if you are interested.
 
 ## Where to get community support ?
 
-To get free community support you can use the following medias :
+To get free community support, you can use the following media :
 
 - The #help channel of BunkerWeb in the [Discord server](https://discord.com/invite/fTf46FmtyD)
-- The help category of [GitHub dicussions](https://github.com/bunkerity/bunkerweb/discussions)
+- The help category of [GitHub discussions](https://github.com/bunkerity/bunkerweb/discussions)
 - The [/r/BunkerWeb](https://www.reddit.com/r/BunkerWeb) subreddit
 - The [Server Fault](https://serverfault.com/) and [Super User](https://superuser.com/) forums
 
@@ -34,7 +52,7 @@ Here is a non-exhaustive list of what you can do :
 - Follow us on [LinkedIn](https://www.linkedin.com/company/bunkerity/), [Twitter](https://twitter.com/bunkerity) and [GitHub](https://github.com/bunkerity)
 - Report bugs and propose new features using [issues](https://github.com/bunkerity/bunkerweb/issues)
 - Contribute to the code using [pull requests](https://github.com/bunkerity/bunkerweb/pulls)
-- Write an awesome [plugin](/plugins)
+- Write an awesome [plugin](plugins.md)
 - Talk about BunkerWeb to your friends/colleagues, on social media, on your blog, ...
 
 ## How to report security issue ?

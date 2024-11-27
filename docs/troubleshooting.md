@@ -1,17 +1,20 @@
 # Troubleshooting
 
+!!! info "BunkerWeb Panel"
+	If you are unable to resolve your problems, you can [contact us directly via our panel](https://panel.bunkerweb.io/?utm_campaign=self&utm_source=doc). This centralises all requests relating to the BunkerWeb solution.
+
 ## Logs
 
-When troubleshooting, the logs are your best friends. We try our best to provide user-friendly logs to help you understand what's happening.
+When troubleshooting, logs are your best friends. We try our best to provide user-friendly logs to help you understand what's happening.
 
 Please note that you can set `LOG_LEVEL` setting to `info` (default : `notice`) to increase the verbosity of BunkerWeb.
 
-Here is how you can access the logs depending on your integration :
+Here is how you can access the logs, depending on your integration :
 
 === "Docker"
 
     !!! tip "List containers"
-    	To list the running containers you can use the following command :
+    	To list the running containers, you can use the following command :
     	```shell
     	docker ps
     	```
@@ -29,7 +32,7 @@ Here is how you can access the logs depending on your integration :
 === "Docker autoconf"
 
     !!! tip "List containers"
-    	To list the running containers you can use the following command :
+    	To list the running containers, you can use the following command :
     	```shell
     	docker ps
     	```
@@ -49,12 +52,12 @@ Here is how you can access the logs depending on your integration :
 === "Swarm"
 
     !!! tip "List services"
-    	To list the services you can use the following command :
+    	To list the services, you can use the following command :
     	```shell
     	docker service ls
     	```
 
-    You can use the `docker service logs` command (replace `mybunker` and `myautoconf` my with the name of your services) :
+    You can use the `docker service logs` command (replace `mybunker` and `myautoconf` with the name of your services) :
     ```shell
     docker service logs mybunker
     docker service logs myautoconf
@@ -63,11 +66,11 @@ Here is how you can access the logs depending on your integration :
 === "Kubernetes"
 
     !!! tip "List pods"
-    	To list the pods you can use the following command :
+    	To list the pods, you can use the following command :
     	```shell
     	kubectl get pods
     	```
-    You can use the `kubectl logs` command (replace `mybunker` and `myautoconf` my with the name of your pods) :
+    You can use the `kubectl logs` command (replace `mybunker` and `myautoconf` with the name of your pods) :
     ```shell
     kubectl logs mybunker
     kubectl logs myautoconf
@@ -75,29 +78,38 @@ Here is how you can access the logs depending on your integration :
 
 === "Linux"
 
-    The logs are located inside the `/var/log/nginx` directory. There is two files :
+    For errors related to BunkerWeb services (e.g. not starting), you can use `journalctl` :
     ```shell
-    cat /var/log/nginx/error.log
-    cat /var/log/nginx/access.log
+    journalctl -u bunkerweb --no-pager
+    ```
+
+    Common logs are located inside the `/var/log/bunkerweb` directory :
+    ```shell
+    cat /var/log/bunkerweb/error.log
+    cat /var/log/bunkerweb/access.log
     ```
 
 ## Permissions
 
-Don't forget that BunkerWeb runs as an unprivileged user for obvious security reasons. Double-check the permissions of files and folders used by BunkerWeb especially if you use custom configurations (more info [here](/quickstart-guide/#custom-configurations)). You will need to set at least **RW** rights on files and **_RWX_** on folders.
+Don't forget that BunkerWeb runs as an unprivileged user for obvious security reasons. Double-check the permissions of files and folders used by BunkerWeb, especially if you use custom configurations (more info [here](quickstart-guide.md#custom-configurations)). You will need to set at least **RW** rights on files and **_RWX_** on folders.
+
+## Disable security checks
+
+For debugging purposes, you may need to temporarily disable the security checks made by BunkerWeb. One quick way of doing it is by adding everyone in the whitelist (e.g. `WHITELIST_IP=0.0.0.0/0`).
 
 ## ModSecurity
 
 The default BunkerWeb configuration of ModSecurity is to load the Core Rule Set in anomaly scoring mode with a paranoia level (PL) of 1 :
 
 - Each matched rule will increase an anomaly score (so many rules can match a single request)
-- PL1 include rules with fewer chances of false positives (but less security than PL4)
+- PL1 includes rules with fewer chances of false positives (but less security than PL4)
 - the default threshold for anomaly score is 5 for requests and 4 for responses
 
 Let's take the following logs as an example of ModSecurity detection using default configuration (formatted for better readability) :
 
 ```log
 2022/04/26 12:01:10 [warn] 85#85: *11 ModSecurity: Warning. Matched "Operator `PmFromFile' with parameter `lfi-os-files.data' against variable `ARGS:id' (Value: `/etc/passwd' )
-	[file "/opt/bunkerweb/core/modsecurity/files/coreruleset/rules/REQUEST-930-APPLICATION-ATTACK-LFI.conf"]
+	[file "/usr/share/bunkerweb/core/modsecurity/files/coreruleset/rules/REQUEST-930-APPLICATION-ATTACK-LFI.conf"]
 	[line "78"]
 	[id "930120"]
 	[rev ""]
@@ -121,7 +133,7 @@ Let's take the following logs as an example of ModSecurity detection using defau
 	[ref "o1,10v9,11t:utf8toUnicode,t:urlDecodeUni,t:normalizePathWin,t:lowercase"],
 	client: 172.17.0.1, server: localhost, request: "GET /?id=/etc/passwd HTTP/1.1", host: "localhost"
 2022/04/26 12:01:10 [warn] 85#85: *11 ModSecurity: Warning. Matched "Operator `PmFromFile' with parameter `unix-shell.data' against variable `ARGS:id' (Value: `/etc/passwd' )
-	[file "/opt/bunkerweb/core/modsecurity/files/coreruleset/rules/REQUEST-932-APPLICATION-ATTACK-RCE.conf"]
+	[file "/usr/share/bunkerweb/core/modsecurity/files/coreruleset/rules/REQUEST-932-APPLICATION-ATTACK-RCE.conf"]
 	[line "480"]
 	[id "932160"]
 	[rev ""]
@@ -145,7 +157,7 @@ Let's take the following logs as an example of ModSecurity detection using defau
 	[ref "o1,10v9,11t:urlDecodeUni,t:cmdLine,t:normalizePath,t:lowercase"],
 	client: 172.17.0.1, server: localhost, request: "GET /?id=/etc/passwd HTTP/1.1", host: "localhost"
 2022/04/26 12:01:10 [error] 85#85: *11 [client 172.17.0.1] ModSecurity: Access denied with code 403 (phase 2). Matched "Operator `Ge' with parameter `5' against variable `TX:ANOMALY_SCORE' (Value: `10' )
-	[file "/opt/bunkerweb/core/modsecurity/files/coreruleset/rules/REQUEST-949-BLOCKING-EVALUATION.conf"]
+	[file "/usr/share/bunkerweb/core/modsecurity/files/coreruleset/rules/REQUEST-949-BLOCKING-EVALUATION.conf"]
 	[line "80"]
 	[id "949110"]
 	[rev ""]
@@ -166,7 +178,7 @@ Let's take the following logs as an example of ModSecurity detection using defau
 	client: 172.17.0.1, server: localhost, request: "GET /?id=/etc/passwd HTTP/1.1", host: "localhost"
 ```
 
-As we can see there are 3 different logs :
+As we can see, there are 3 different logs :
 
 1. Rule **930120** matched
 2. Rule **932160** matched
@@ -174,11 +186,11 @@ As we can see there are 3 different logs :
 
 One important thing to understand is that rule **949110** is not a "real" one : it's the one that will deny the request because the anomaly threshold is reached (which is **10** in this example). You should never remove the **949110** rule !
 
-If it's a false-positive you should then focus on both **930120** and **932160** rules. ModSecurity and/or CRS tuning is out of the scope of this documentation but don't forget that you can apply custom configurations before and after the CRS is loaded (more info [here](/quickstart-guide/#custom-configurations)).
+If it's a false-positive, you should then focus on both **930120** and **932160** rules. ModSecurity and/or CRS tuning is out of the scope of this documentation but don't forget that you can apply custom configurations before and after the CRS is loaded (more info [here](quickstart-guide.md#custom-configurations)).
 
 ## Bad Behavior
 
-A common false-positive case is that the client is banned because of the "bad behavior" feature which means that too many suspicious HTTP status codes were generated within a time period (more info [here](/security-tuning/#bad-behavior)). You should start by reviewing the settings and edit them according to your web application(s) like removing a suspicious HTTP code, decreasing the count time, increasing the threshold, ...
+A common false-positive case is when the client is banned because of the "bad behavior" feature which means that too many suspicious HTTP status codes were generated within a time period (more info [here](security-tuning.md#bad-behavior)). You should start by reviewing the settings and then edit them according to your web application(s) like removing a suspicious HTTP code, decreasing the count time, increasing the threshold, ...
 
 ## IP unban
 
@@ -198,14 +210,14 @@ You can manually unban an IP which can be useful when doing some tests but it ne
 
 === "Docker autoconf"
 
-    You can use the `docker exec` command (replace `mya` with the name of your container) :
+    You can use the `docker exec` command (replace `myautoconf` with the name of your container) :
     ```shell
-    docker exec mybunker bwcli unban 1.2.3.4
+    docker exec myautoconf bwcli unban 1.2.3.4
     ```
 
-    Here is the docker-compose equivalent (replace `mybunker` with the name of the services declared in the docker-compose.yml file) :
+    Here is the docker-compose equivalent (replace `myautoconf` with the name of the services declared in the docker-compose.yml file) :
     ```shell
-    docker-compose exec mybunker bwcli unban 1.2.3.4
+    docker-compose exec myautoconf bwcli unban 1.2.3.4
     ```
 
 === "Swarm"
@@ -224,15 +236,204 @@ You can manually unban an IP which can be useful when doing some tests but it ne
 
 === "Linux"
 
-    You can use the `bwcli` command :
+    You can use the `bwcli` command (as root) :
     ```shell
-    bwcli unban 1.2.3.4
+    sudo bwcli unban 1.2.3.4
     ```
 
 ## Whitelisting
 
-If you have bots that need to access your website, the recommended way to avoid any false positive is to whitelist it using the [whitelisting feature](/security-tuning/#blacklisting-and-whitelisting). We don't recommend using the `WHITELIST_URI*` or `WHITELIST_USER_AGENT*` settings unless they are set to secret and unpredictable values. Common use cases are :
+If you have bots that need to access your website, the recommended way to avoid any false positive is to whitelist them using the [whitelisting feature](security-tuning.md#blacklisting-whitelisting-and-greylisting). We don't recommend using the `WHITELIST_URI*` or `WHITELIST_USER_AGENT*` settings unless they are set to secret and unpredictable values. Common use cases are :
 
 - Healthcheck / status bot
 - Callback like IPN or webhook
 - Social media crawler
+
+## Timezone
+
+When using container-based integrations, the timezone of the container may not match the one of the host machine. To resolve that, you can set the `TZ` environment variable to the timezone of your choice on your containers (e.g. `TZ=Europe/Paris`). You will find the list of timezone identifiers [here](https://en.wikipedia.org/wiki/List_of_tz_database_time_zones#List).
+
+## Web UI
+
+In case you lost your UI credentials or have 2FA issues, you can connect to the database to retrieve access.
+
+**Access database**
+
+=== "SQLite"
+
+    === "Linux"
+
+        Install SQLite (Debian/Ubuntu) :
+
+        ```shell
+        sudo apt install sqlite3
+        ```
+
+        Install SQLite (Fedora/RedHat) :
+
+        ```shell
+        sudo dnf install sqlite
+        ```
+
+    === "Docker"
+
+        Get a shell into your scheduler container :
+
+        !!! note "Docker arguments"
+            - the `-u 0` option is to run the command as root (mandatory)
+            - the `-it` options are to run the command interactively (mandatory)
+            - `<bunkerweb_scheduler_container>` : the name or ID of your scheduler container
+
+        ```shell
+        docker exec -u 0 -it <bunkerweb_scheduler_container> bash
+        ```
+
+        Install SQLite :
+
+        ```bash
+        apk add sqlite
+        ```
+
+    Access your database :
+
+    !!! note "Database path"
+        We assume that you are using the default database path. If you are using a custom path, you will need to adapt the command.
+
+    ```bash
+    sqlite3 /var/lib/bunkerweb/db.sqlite3
+    ```
+
+    You should see something like this :
+
+    ```text
+    SQLite version <VER> <DATE>
+    Enter ".help" for usage hints.
+    sqlite>
+    ```
+
+=== "MariaDB / MySQL"
+
+    !!! note "MariaDB / MySQL only"
+        The following steps are only valid for MariaDB / MySQL databases. If you are using another database, please refer to the documentation of your database.
+
+    !!! note "Credentials and database name"
+        You will need to use the same credentials and database named used in the `DATABASE_URI` setting.
+
+    === "Linux"
+
+        Access your local database :
+
+        ```bash
+        mysql -u <user> -p <database>
+        ```
+
+        Then enter your password of the database user and you should be able to access your database.
+
+    === "Docker"
+
+        Access your database container :
+
+        !!! note "Docker arguments"
+            - the `-u 0` option is to run the command as root (mandatory)
+            - the `-it` options are to run the command interactively (mandatory)
+            - `<bunkerweb_db_container>` : the name or ID of your database container
+            - `<user>` : the database user
+            - `<database>` : the database name
+
+        ```shell
+        docker exec -u 0 -it <bunkerweb_db_container> mysql -u <user> -p <database>
+        ```
+
+        Then enter your password of the database user and you should be able to access your database.
+
+**Troubleshooting actions**
+
+!!! info "Table schema"
+    The schema of the `bw_ui_users` table is the following :
+
+    ```sql
+    id INTEGER PRIMARY KEY AUTOINCREMENT
+    username VARCHAR(256) NOT NULL UNIQUE
+    password VARCHAR(60) NOT NULL
+    is_two_factor_enabled BOOLEAN NOT NULL DEFAULT 0
+    secret_token VARCHAR(32) DEFAULT NULL
+    method ("manual" or "ui") NOT NULL DEFAULT 'manual'
+    ```
+
+=== "Retrieve username"
+
+    Execute the following command to extract data from the `bw_ui_users` table :
+
+    ```sql
+    SELECT * FROM bw_ui_users;
+    ```
+
+    You should see something like this :
+    ```text
+    1|<username>|<password_hash>|1|<secret_totp_token>|(manual or ui)
+    ```
+
+=== "Update password"
+
+    You first need to hash the new password using the bcrypt algorithm.
+
+    Install the Python bcrypt library :
+
+    ```shell
+    pip install bcrypt
+    ```
+
+    Generate your hash (replace `mypassword` with your own password) :
+
+    ```shell
+    python -c 'from bcrypt import hashpw, gensalt ; print(hashpw("mypassword".encode("utf-8"), gensalt(rounds=13)).decode())'
+    ```
+
+    You can update your username / password executing this command :
+
+    ```sql
+    UPDATE bw_ui_users SET username = <username>, password = <password_hash> WHERE id = 1;
+    ```
+
+    If you check again your `bw_ui_users` table following this command :
+
+    ```sql
+    SELECT * FROM bw_ui_users;
+    ```
+
+    You should see something like this :
+
+    ```text
+    1|<username>|<password_hash>|0||(manual or ui)
+    ```
+
+    You should now be able to use the new credentials to log into the web UI.
+
+=== "Disable 2FA authentication"
+
+    You can deactivate 2FA by executing this command :
+
+    ```sql
+    UPDATE bw_ui_users SET is_two_factor_enabled = 0, secret_token = NULL WHERE id = 1;
+    ```
+
+    If you check again your `bw_ui_users` table by following this command :
+
+    ```sql
+    SELECT * FROM bw_ui_users;
+    ```
+
+    You should see something like this :
+
+    ```text
+    1|<username>|<password_hash>|0||(manual or ui)
+    ```
+
+    You should now be able to log into the web UI only using your username and password.
+
+**Upload plugin**
+
+It may not be possible to upload a plugin from the UI in certain situations:
+
+- Missing package to manage compressed files on your integration, in which case you will need to add the necessary packages
+- Safari browser : the 'safe mode' may prevent you from being able to add a plugin. You will need to make the necessary changes on your machine
